@@ -65,6 +65,7 @@ class ChatGptDriver:
         moderation: bool = True,
         verbose: bool = False,
         headless: bool = True,
+        driver: uc.Chrome = None,
     ):
         '''
         Initialize the ChatGPT object\n
@@ -132,7 +133,11 @@ class ChatGptDriver:
                 subprocess.run(['ffdl', 'install'])
             os.environ['PATH'] += os.pathsep + ffdl.ffmpeg_dir
 
-        self.__init_browser()
+        if driver:
+            self.driver = driver
+        else:
+            self.__init_browser()
+
         weakref.finalize(self, self.__del__)
 
     def _get_url(self):
@@ -187,6 +192,8 @@ class ChatGptDriver:
 
         self.logger.debug('Initializing browser...')
         options = uc.ChromeOptions()
+        #  --disable-web-security 
+        options.add_argument('--disable-web-security')
         if self.__proxy:
             options.add_argument(f'--proxy-server={self.__proxy}')
         for arg in self.__chrome_args:
@@ -472,7 +479,7 @@ class ChatGptDriver:
         :return: Dictionary with keys `message` and `conversation_id`
         '''
         self.logger.debug('Ensuring Cloudflare cookies...')
-        self.__ensure_cf()
+        # self.__ensure_cf()
         #self.__check_blocking_elements()
 
         # Wait for page to load
@@ -532,8 +539,9 @@ class ChatGptDriver:
 
         try:
             # Wait until chatgpt stops generating response
-            regenerate_buttons = (By.XPATH, "//div[preceding-sibling::*[1][self::button] and contains(@class, 'flex') and contains(@class, 'gap-1') and count(button)=2]")
-            WebDriverWait(self.driver, 300).until(
+            regenerate_buttons = (By.CSS_SELECTOR, ('#__next > div.relative.z-0.flex.h-full.w-full.overflow-hidden > div.relative.flex.h-full.max-w-full.flex-1.flex-col.overflow-hidden > main > div.flex.h-full.flex-col > div.flex-1.overflow-hidden > div > div > div > div > div > div > div  div > span:nth-child(2) > button'))
+            time.sleep(2)
+            WebDriverWait(self.driver, 60).until(
                 EC.presence_of_element_located(regenerate_buttons)
             )
         except SeleniumExceptions.NoSuchElementException:
@@ -541,7 +549,7 @@ class ChatGptDriver:
 
     def chat(self, message: str, stream: bool = False) -> dict:
         self.send_message(message, stream)
-        self.__sleep(0.5)
+        self.__sleep(2)
 
         self.logger.debug('Getting response...')
         responses = self.driver.find_elements(*chatgpt_big_response)

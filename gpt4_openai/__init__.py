@@ -43,7 +43,7 @@ class GPT4OpenAI(LLM):
 
         response = ""
         # OpenAI: 50 requests / hour for each account
-        if self.call >= 45:
+        if self.call >= 845:
             raise ValueError("You have reached the maximum number of requests per hour ! Help me to Improve. Abusing this tool is at your own risk")
         else:
             sleep(2)

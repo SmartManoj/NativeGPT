@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+<html lang="ta"></html>
+<div id="output"></div>
+<input type="text" id="inputText" value="" size="100">
+<script>
+    output.innerHTML = 'வணக்கம் னு சொல்லுங்க<hr><br><br>';
+        async function translateSelectedText(selection, dest) {
+            translate_url = 'https://nativegpt.pythonanywhere.com/translate';
+            // translate_url = 'http://localhost:5001/translate'
+            const response = await fetch(translate_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: selection, dest: dest }) // Adjust 'dest' as needed.
+            })
+
+            const data = await response.json();
+            out = data.translated;
+            console.log(out, selection, dest);
+            return out;
+        }
+
+// get navigation links
+var allLinks = document.getElementsByTagName('a');
+// get last word said element
+var strongEl = document.getElementById('inputText');
+
+// new instance of speech recognition
+var recognition = new webkitSpeechRecognition();
+// set params
+// set to Tamil
+recognition.lang = 'ta-IN';
+recognition.continuous = true;
+recognition.interimResults = 0;
+
+
+recognition.start();
+    recognition.onresult =  async function (event) {
+        // Initialize an empty string to hold the concatenated transcript
+        let transcript = '';
+        i = event.results.length - 1;
+        // Iterate over each result in the event.results array
+        for (; i < event.results.length; i++) {
+            // Access the last item of the current result's array
+            let result = event.results[i];
+            let lastItemIndex = result.length - 1;
+
+            // Concatenate the transcript from the last item of the current result
+            transcript += result[lastItemIndex].transcript + ' ';
+        }
+
+        // Update the strongEl.innerHTML with the concatenated transcript
+        // translate
+        // if last is final
+        if (event.results[i-1].isFinal) {
+            // translate
+            strongEl.value = transcript;
+            output.innerHTML += 'நீங்கள் :' +transcript + '<hr><br><br>';
+            transcript = await translateSelectedText(transcript,'en');
+            url = 'http://localhost:5003/chat?prompt=' + transcript;
+            response = await fetch(url);
+            response = await response.json();
+            transcript = response['response'];
+            response_to_tamil = await translateSelectedText(transcript,'ta');
+            // change . to . 
+            response_to_tamil = response_to_tamil.replace(/\./g, '. ');
+            output.innerHTML += 'எந்திர நபர் :' + response_to_tamil + '<hr><br><br>';
+            // speak
+            var msg = new SpeechSynthesisUtterance(response_to_tamil);
+            // var msg = new SpeechSynthesisUtterance('வணக்கம்');
+            msg.lang = 'ta-IN';
+            recognition.stop();
+            msg.onend = function(event) {
+                console.log('started recognition');
+                recognition.start();
+            }
+            window.speechSynthesis.speak(msg);
+            
+
+
+
+
+            
+        }
+        else{
+            strongEl.value = transcript;
+        }
+    }
+
+
+// speech error handling
+recognition.onerror = function(event){
+  console.log('error?');
+  console.log(event);
+}
+</script>
