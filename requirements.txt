@@ -1,0 +1,6 @@
+python-dotenv
+langchain
+flask
+networkx
+undetected-chromedriver
+markdownify
