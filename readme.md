@@ -1,3 +1,20 @@
+NativeGPT
+
+![image](https://github.com/SmartManoj/NativeGPT/assets/7231077/ccfae3d3-7b84-4d87-9ad4-da61a2e1c374)
+
+
+
+## Set up
+
+1. Go to https://chat.openai.com and open the developer tools by `F12`.
+2. Find the `__Secure-next-auth.session-token` cookie in `Application` > `Storage` > `Cookies` > `https://chat.openai.com`.
+3. Copy the value in the `Cookie Value` field and add in .env file.
+
+![image](https://user-images.githubusercontent.com/19218518/206170122-61fbe94f-4b0c-4782-a344-e26ac0d4e2a7.png)
+
+4. Run app.py 
+
+------------------------------
 # GPT4 OpenAI unofficial API
 
 ## Unofficial GPT-4 API access via chat.openai.com using Selenium
@@ -80,14 +97,6 @@ Output will be:
 ```
 AI: Ahoy, me name be John an' I be likin' ta feast on some pizza, arr!
 ```
-
-## How to get the session token
-
-1. Go to https://chat.openai.com and open the developer tools by `F12`.
-2. Find the `__Secure-next-auth.session-token` cookie in `Application` > `Storage` > `Cookies` > `https://chat.openai.com`.
-3. Copy the value in the `Cookie Value` field.
-
-![image](https://user-images.githubusercontent.com/19218518/206170122-61fbe94f-4b0c-4782-a344-e26ac0d4e2a7.png)
 
 ## OpenAI's GPT4 vs other providers
 
