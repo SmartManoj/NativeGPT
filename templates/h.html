@@ -1,30 +1,9 @@
 ﻿<!DOCTYPE html>
 <html lang="ta">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NativeGPT</title>
-</head>
-<body>
-    <div id="output"></div>
-    <input type="text" id="inputText" value="" >
-    <button id="sendButton">Send</button>
-</body>
-
-<script>
-    // Function to handle sending the message
-    async function sendMessage() {
-        const inputText = document.getElementById('inputText');
-        await send_msg(inputText.value);
-    }
-
-    // Add an event listener to the send button
-    document.getElementById('sendButton').addEventListener('click', sendMessage);
-</script>
-
-
-
+</html>
+<div id="output"></div>
+<input type="text" id="inputText" value="" size="100">
 <script>
     is_tamil_available = false;
     if ('speechSynthesis' in window) {
@@ -187,7 +166,56 @@
         // if last is final
         if (event.results[i - 1].isFinal) {
             // translate
-            await send_msg(transcript);
+            strongEl.value = transcript;
+            output.innerHTML += 'நீங்கள் :' + transcript + '<hr><br><br>';
+            transcript = await translateSelectedText(transcript, 'en');
+            url = 'http://localhost:5003/chat?prompt=' + transcript;
+            if (1) {
+                response = await fetch(url);
+                response = await response.json();
+                transcript = response['response'];
+
+            } else {
+                transcript = 'நீங்கள் சொல்லியது என்ன?';
+            }
+            response_to_tamil = await translateSelectedText(transcript, 'ta');
+            // change . to . 
+            response_to_tamil = response_to_tamil.replace(/\./g, '. ');
+            output.innerHTML += 'எந்திர நபர் :' + response_to_tamil + '<hr><br><br>';
+            // speak
+            if (is_tamil_available) {
+                var msg = new SpeechSynthesisUtterance(response_to_tamil);
+                msg.lang = 'ta-IN';
+                recognition.stop();
+                msg.onend = function (event) {
+                    console.log('started recognition');
+                    recognition.start();
+                }
+                window.speechSynthesis.speak(msg);
+            }
+            else {
+
+
+                url = `https://nativegpt.pythonanywhere.com/play?text=${response_to_tamil}`;
+
+                fetch(url)
+                    .then(response => {
+                        if (response.ok) {
+                            return response.blob();
+                        }
+                        throw new Error('Network response was not ok.');
+                    })
+                    .then(blob => {
+                        objectURL = URL.createObjectURL(blob);
+                        audio = new Audio(objectURL);
+                        audio.play();
+                        audio.onended = function () {
+                            recognition.start();
+                        }
+                    })
+                    .catch(error => console.error('There has been a problem with your fetch operation:', error));
+
+            }
 
 
 
