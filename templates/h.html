@@ -1,40 +1,174 @@
 ﻿<!DOCTYPE html>
-<html lang="ta"></html>
-<div id="output"></div>
-<input type="text" id="inputText" value="" size="100">
-<script>
-    output.innerHTML = 'வணக்கம் னு சொல்லுங்க<hr><br><br>';
-        async function translateSelectedText(selection, dest) {
-            translate_url = 'https://nativegpt.pythonanywhere.com/translate';
-            // translate_url = 'http://localhost:5001/translate'
-            const response = await fetch(translate_url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: selection, dest: dest }) // Adjust 'dest' as needed.
-            })
+<html lang="ta">
 
-            const data = await response.json();
-            out = data.translated;
-            console.log(out, selection, dest);
-            return out;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NativeGPT</title>
+</head>
+<body>
+    <div id="output"></div>
+    <input type="text" id="inputText" value="" >
+    <button id="sendButton">Send</button>
+</body>
+
+<script>
+    // Function to handle sending the message
+    async function sendMessage() {
+        const inputText = document.getElementById('inputText');
+        await send_msg(inputText.value);
+    }
+
+    // Add an event listener to the send button
+    document.getElementById('sendButton').addEventListener('click', sendMessage);
+</script>
+
+
+
+<script>
+    is_tamil_available = false;
+    if ('speechSynthesis' in window) {
+        var text = ''; // Start with an empty string
+
+        // Function to load voices and check for Tamil ('ta')
+        function loadVoices() {
+            var voices = speechSynthesis.getVoices();
+            var taVoiceFound = voices.some(voice => voice.lang.startsWith('ta'));
+
+            if (taVoiceFound) {
+                text = 'Tamil voice is available.';
+                is_tamil_available = true;
+            } else {
+                text = 'Tamil voice is not available.';
+            }
+
+            // Update the HTML content with the result
+            console.log(text);
         }
 
-// get navigation links
-var allLinks = document.getElementsByTagName('a');
-// get last word said element
-var strongEl = document.getElementById('inputText');
+        // Initially load voices
+        loadVoices();
 
-// new instance of speech recognition
-var recognition = new webkitSpeechRecognition();
-// set params
-// set to Tamil
-recognition.lang = 'ta-IN';
-recognition.continuous = true;
-recognition.interimResults = 0;
+        // Chrome loads voices asynchronously, so refresh the list when they are loaded.
+        window.speechSynthesis.onvoiceschanged = function (e) {
+            loadVoices();
+        }
+    } else {
+        console.log('Speech synthesis not supported.');
+    }
+
+    output.innerHTML = 'வணக்கம் னு சொல்லுங்க<hr><br><br>';
+    async function translateSelectedText(selection, dest) {
+        translate_url = 'https://nativegpt.pythonanywhere.com/translate';
+        // translate_url = 'http://localhost:5001/translate'
+        const response = await fetch(translate_url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: selection, dest: dest }) // Adjust 'dest' as needed.
+        })
+
+        const data = await response.json();
+        out = data.translated;
+        console.log(out, selection, dest);
+        return out;
+    }
+
+    // get navigation links
+    var allLinks = document.getElementsByTagName('a');
+    // get last word said element
+    var strongEl = document.getElementById('inputText');
+
+    // new instance of speech recognition
+    var recognition = new webkitSpeechRecognition();
+    // set params
+    // set to Tamil
+    recognition.lang = 'ta-IN';
+    recognition.continuous = true;
+    recognition.interimResults = 0;
+
+    async function send_msg(transcript) {
+            
+            strongEl.value = '';
+        output.innerHTML += 'நீங்கள் :' + transcript + '<hr><br><br>';
+        transcript = await translateSelectedText(transcript, 'en');
+        // url = 'http://localhost:3034/v1/chat/completions?prompt=' + transcript;
+        // if (1) {
+        //     response = await fetch(url);
+        //     response = await response.json();
+        //     transcript = response['response'];
+
+        // } else {
+        //     transcript = 'நீங்கள் சொல்லியது என்ன?';
+        // }
+        llm_url = "https://codes-course-complimentary-exist.trycloudflare.com/v1/chat/completions"
+        llm_url = "/chat"
+        extra= '\nReply in one line.' 
+        extra=''
+        await fetch(llm_url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer your_api_key_here"
+            },
+            body: JSON.stringify({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    { role: "user", content: transcript+extra}
+                ]
+            })
+        })
+            .then(response => response.json())
+            .then(function (data)              {
+                transcript1 = data.choices[0].message.content;
+                console.log('transcript1',data.choices[0].message.content);
+            })
+            .catch(error => console.error("Error:", error));
+
+        response_to_tamil = await translateSelectedText(transcript1, 'ta');
+        // change . to . 
+        response_to_tamil = response_to_tamil.replace(/\./g, '. ');
+        response_to_tamil_html = await fetch('/test?md=' + response_to_tamil).then(response => response.text());
+        output.innerHTML += 'எந்திர நபர் :' + response_to_tamil_html + '<hr><br><br>';
+        // replace **
+        response_to_tamil = response_to_tamil.replace(/\*\*/g, '');
+        // speak
+        if (is_tamil_available) {
+            var msg = new SpeechSynthesisUtterance(response_to_tamil);
+            msg.lang = 'ta-IN';
+            recognition.stop();
+            msg.onend = function (event) {
+                console.log('started recognition');
+                recognition.start();
+            }
+            window.speechSynthesis.speak(msg);
+        }
+        else {
 
 
-recognition.start();
-    recognition.onresult =  async function (event) {
+            url = `https://nativegpt.pythonanywhere.com/play?text=${response_to_tamil}`;
+            recognition.stop();
+
+            fetch(url)
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    }
+                    throw new Error('Network response was not ok.');
+                })
+                .then(blob => {
+                    objectURL = URL.createObjectURL(blob);
+                    audio = new Audio(objectURL);
+                    audio.play();
+                    audio.onended = function () {
+                        recognition.start();
+                    }
+                })
+                .catch(error => console.error('There has been a problem with your fetch operation:', error));
+
+        }
+    }
+    recognition.start();
+    recognition.onresult = async function (event) {
         // Initialize an empty string to hold the concatenated transcript
         let transcript = '';
         i = event.results.length - 1;
@@ -51,45 +185,29 @@ recognition.start();
         // Update the strongEl.innerHTML with the concatenated transcript
         // translate
         // if last is final
-        if (event.results[i-1].isFinal) {
+        if (event.results[i - 1].isFinal) {
             // translate
-            strongEl.value = transcript;
-            output.innerHTML += 'நீங்கள் :' +transcript + '<hr><br><br>';
-            transcript = await translateSelectedText(transcript,'en');
-            url = 'http://localhost:5003/chat?prompt=' + transcript;
-            response = await fetch(url);
-            response = await response.json();
-            transcript = response['response'];
-            response_to_tamil = await translateSelectedText(transcript,'ta');
-            // change . to . 
-            response_to_tamil = response_to_tamil.replace(/\./g, '. ');
-            output.innerHTML += 'எந்திர நபர் :' + response_to_tamil + '<hr><br><br>';
-            // speak
-            var msg = new SpeechSynthesisUtterance(response_to_tamil);
-            // var msg = new SpeechSynthesisUtterance('வணக்கம்');
-            msg.lang = 'ta-IN';
-            recognition.stop();
-            msg.onend = function(event) {
-                console.log('started recognition');
-                recognition.start();
-            }
-            window.speechSynthesis.speak(msg);
-            
+            await send_msg(transcript);
 
 
 
-
-            
         }
-        else{
+        else {
             strongEl.value = transcript;
         }
     }
 
-
-// speech error handling
-recognition.onerror = function(event){
-  console.log('error?');
-  console.log(event);
-}
+    // strongEl on press enter key
+    strongEl.addEventListener('keypress', async function (e) {
+        if (e.key === 'Enter') {
+            await send_msg(strongEl.value);
+        }
+    });
+    // speech error handling
+    recognition.onerror = function (event) {
+        console.log('error?');
+        console.log(event);
+    }
+    send_msg('வணக்கம்.');
 </script>
+</html>
