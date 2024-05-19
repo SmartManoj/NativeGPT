@@ -9,7 +9,12 @@ load_dotenv()
 from cgf import send_message
 # send_message = lambda x: None
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 app = Flask(__name__)
+CORS(app)
+@app.route('/models', methods=['GET'])
+def models():
+    return jsonify({'object':'list','data': [{'id': 'x', 'object': 'model', 'created':'x','owned_by':'x'}]})
 @app.route('/', methods=['POST'])
 def open_ai():
     json = request.get_json()
@@ -40,20 +45,28 @@ def open_ai():
 def index():
     return render_template('h.html')
 
+legacy=0
 @app.route('/chat/completions', methods=['POST'])
+@app.route('/completions', methods=['POST'])
 @app.route('/chat', methods=['GET','POST'])
 def chat():
     if 1:
         if request.method == 'POST':
-            messages = request.json['messages']
-            s=''
-            for i in messages:
-                s+=f"{i['content']}"
-            data = s.strip()
-            print(data)
+            if legacy:
+                data = request.json.get('prompt')
+            else:
+                messages = request.json.get('messages') 
+                s=''
+                for i in messages:
+                    s+=f"{i['content']}"
+                data = s.strip()
+                print(data)
         else:
             data = request.args.get('prompt')
-        response = send_message(data)
+        try:
+            response = send_message(data)
+        except Exception as e:
+            response = str(e)
     else:
         response = '''Sure, I'll create a bash script named "hello_world.sh" for you:
 
@@ -62,10 +75,17 @@ cat <<EOF > hello_world.sh
 #!/bin/bash
 echo "Hello, World!"
 EOF
+bash hello_world.sh
 </execute_bash>'''
-    print(data)
+    # print(data)
     print(response)
-    return {'model':'x','choices': [{'message': {'content': response}}]}
+    if legacy:
+        rs = response.strip()
+        yes_prob = 15 if 'yes' in rs.lower() else 10
+        no_prob = 15 if 'no' in rs.lower() else 10
+        return {'model':'x','choices': [{'text': rs, 'logprobs':{'top_logprobs': [{'token':'Yes','logprob':yes_prob},{'token':'No','logprob':no_prob}]}, 'finish_reason': 'length'}]}
+    else:
+        return {'model':'x','choices': [{'message': {'content': response}}]}
 
 @app.route('/test', methods=['GET'])
 def test():
