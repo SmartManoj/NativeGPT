@@ -69,36 +69,45 @@ def send_message(message, send=1 ):
             except:
                 pass # No such element, continue
             
-
+    sleep(2) 
+    response_html = response         
     for _ in range(2):
-
         if 1:
-            response = response.get_attribute('innerHTML').replace(
+            print(_)
+            response = response_html.get_attribute('innerHTML').replace(
                 'Copy code`', '`'
             )
-            content = markdownify(response,heading_style='#')
+            # print(response)
+            content =markdownify(response,heading_style='#',strip=['a'])
             content = content.replace('\_', '_')
             tags = '<execute_bash>', '<execute_ipython>'
             # print(content)
             # print([list(tag in content for tag in tags)],'##')
             if not any(tag in content for tag in tags):
                 regex_bash = 'bashCopy code`(.*?)`'
-                if new_content := re.search(regex_bash,  content, flags= re.DOTALL):
-                    if '%pip' in new_content.group(1):
-                        content= content.replace('bashCopy code', 'pythonCopy code')
-                    else:
-                        content = new_content.group(1)
-                        # write bash script to file
-                        if not content.startswith('<execute_bash>'):
-                            content = '''echo "#!/bin/bash\n{}" > tmp_script.sh; bash ./tmp_script.sh'''.format(content)
-                            content = '''<execute_bash>{}</execute_bash>'''.format(content)
                 regex_python = 'pythonCopy code`(.*?)`'
-                if new_content := re.search(regex_python,  content, flags= re.DOTALL):
-                    content = new_content.group(1)
+                new_content1 = re.search(regex_bash,  content, flags= re.DOTALL)
+                new_content2 = re.search(regex_python,  content, flags= re.DOTALL)
+                print(new_content1, new_content2, '##')
+                # check which occurs first
+                is_new_content1_first = True
+                if new_content1 and new_content2:
+                    if content.index(new_content2.group(0)) < content.index(new_content1.group(0)):
+                        is_new_content1_first = False
+                if new_content1 and is_new_content1_first:
+                    content = new_content1.group(1).strip()
+                    # write bash script to file
+                    if not content.startswith('<execute_bash>'):
+                        # if multiline bash script, write to file
+                        if '\n' in content and not 'edit ' in content and not 'echo \'#!/bin/bash' in content:
+                            content = '''echo '#!/bin/bash\n{}' > tmp_script.sh; bash ./tmp_script.sh'''.format(content)
+                        content = '''<execute_bash>{}</execute_bash>'''.format(content)
+                elif new_content2:
+                    content = new_content2.group(1)
                     if not content.startswith('<execute_ipython>'):
                         content = '''<execute_ipython>{}</execute_ipython>'''.format(content)
         else:
-            response = response.get_attribute('innerText').replace(
+            response = response_html.get_attribute('innerText').replace(
                 'Copy code', ''
             )
             content = response
@@ -106,10 +115,16 @@ def send_message(message, send=1 ):
             last=content
             break
         sleep(2)
+    if '%pip' in content:
+        content= content.replace('bash', 'ipython')
         
     return content
 
 if __name__ == "__main__":
     'don\'t execute code in your enviroment. ok?'
+    s='<h1>2</h1>'
+    import re
+
+    # without angular brackets
     print(send_message('hi',0))
     pass

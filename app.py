@@ -1,4 +1,5 @@
 import os
+import traceback
 from dotenv import load_dotenv # pip install python-dotenv
 from gpt4_openai import GPT4OpenAI
 import markdown
@@ -58,14 +59,22 @@ def chat():
                 messages = request.json.get('messages') 
                 s=''
                 for i in messages:
-                    s+=f"{i['content']}"
+                    s+=f"{i['content']}\n" + ('-'*10) + '\n'
                 data = s.strip()
                 print(data)
         else:
             data = request.args.get('prompt')
         try:
+            xtra='remote: Counting objects: ','Receiving objects:','Resolving deltas:'
+
+            new_data = ''
+            for i in data.split('\n'):
+                if not any(j in i for j in xtra):
+                    new_data+=i+'\n'
+            data = new_data
             response = send_message(data)
         except Exception as e:
+            traceback.print_exc()
             response = str(e)
     else:
         response = '''Sure, I'll create a bash script named "hello_world.sh" for you:
