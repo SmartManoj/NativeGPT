@@ -7,7 +7,8 @@ load_dotenv()
 
 # Token is the __Secure-next-auth.session-token from chat.openai.com
 # import cg
-from cgf import send_message
+from cgf import send_message,ci
+# ci()
 # send_message = lambda x: None
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
@@ -47,31 +48,40 @@ def index():
     return render_template('h.html')
 
 legacy=0
-@app.route('/chat/completions', methods=['POST'])
+@app.route('/completions_l', methods=['POST'])
+def legacy_chat():
+    data = request.json.get('prompt')
+    response = send_message(data)
+    return {'model':'x','choices': [{'text': response, 'finish_reason': 'length'}]}
 @app.route('/completions', methods=['POST'])
 @app.route('/chat', methods=['GET','POST'])
+@app.route('/chat/completions', methods=['POST'])
 def chat():
     if 1:
         if request.method == 'POST':
-            if legacy:
-                data = request.json.get('prompt')
-            else:
-                messages = request.json.get('messages') 
-                s=''
-                for i in messages:
-                    s+=f"{i['content']}\n" + ('-'*10) + '\n'
-                data = s.strip()
-                print(data)
+            messages = request.json.get('messages') 
+            s=''
+            for i in messages:
+                # print('##',i,)
+                content = i['content']
+                if isinstance(content, list):
+                    content = '\n'.join(i['text'] for i in content)
+                s+=f"{i['role'].upper()}: {content}\n" + ('-'*10) + '\n'
+            data = s.strip()
+            print(data)
+            stop_sequence = request.json.get('stop')
         else:
             data = request.args.get('prompt')
+            stop_sequence = None
         try:
             xtra='remote: Counting objects: ','Receiving objects:','Resolving deltas:'
-
             new_data = ''
             for i in data.split('\n'):
                 if not any(j in i for j in xtra):
                     new_data+=i+'\n'
             data = new_data
+            # if stop_sequence:
+            #     data += '\n'+'Stop Sequence: '+','.join(stop_sequence)
             response = send_message(data)
         except Exception as e:
             traceback.print_exc()
@@ -106,6 +116,6 @@ def test2():
     return html
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5003, debug=1)
+    app.run(host='0.0.0.0', port=5003, debug=0)
     #  http://localhost:5003/chat?prompt=hi
     #  http://localhost:5003transcript

@@ -64,7 +64,10 @@ def send_message(message, send=1 ):
             break
         sleep(2)
         
+    ss= '</execute_ipython>','</execute_bash>','</execute_browse>'
+    for i in ss:
+        content = content.split(i)[0]
     return content
 
 if __name__ == "__main__":
-    print(send_message('hi',1))
+    print(send_message('hi',0))
